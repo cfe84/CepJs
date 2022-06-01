@@ -5,7 +5,7 @@ import { IAstNode } from "./IAstNode";
 export type FieldType = "*" | "qualified"
 
 export class FilterClauseAstNode implements IAstNode {
-  static type = "WHERE"
+  static type = "FILTER"
   type = FilterClauseAstNode.type;
 
   // Todo: Support actual boolean logic

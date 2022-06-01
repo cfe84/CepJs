@@ -14,11 +14,14 @@ import { FieldAstNode } from "../src/Parser/FieldAstNode"
 import { FieldQualifier } from "../src/Parser/FieldQualifer"
 import { FilterClauseAstNode } from "../src/Parser/FilterClauseAstNode"
 import { FilterField } from "../src/Parser/FilterField"
-import { FromClauseAstNode } from "../src/Parser/FromClauseAst"
+import { SourceClauseAstNode } from "../src/Parser/SourceClauseAst"
 import { OutputClauseAstNode } from "../src/Parser/OutputClauseAst"
 
 import { Parser } from "../src/Parser/Parser"
 import { SelectionClauseAstNode } from "../src/Parser/SelectionClauseAstNode"
+import { TokenJoin } from "../src/Lexer/TokenJoin"
+import { TokenOn } from "../src/Lexer/TokenOn"
+import { JoinAstNode } from "../src/Parser/JoinAstNode"
 
 describe("Parsing queries", function () {
   it("Parses star select", function () {
@@ -37,7 +40,7 @@ describe("Parsing queries", function () {
 
     // then
     should(queryAst.selectionClause).be.deepEqual(new SelectionClauseAstNode([new FieldAstNode("*")]))
-    should(queryAst.fromClause).deepEqual(new FromClauseAstNode("input"))
+    should(queryAst.fromClause).deepEqual(new SourceClauseAstNode("input", []))
     should(queryAst.outputClause).deepEqual(new OutputClauseAstNode("output"))
   })
 
@@ -66,7 +69,7 @@ describe("Parsing queries", function () {
     should(queryAst.selectionClause).be.deepEqual(new SelectionClauseAstNode([
       new FieldAstNode("qualified", new FieldQualifier("input1", ["attribute1"])),
       new FieldAstNode("qualified", new FieldQualifier("input1", ["attribute2"]))]))
-    should(queryAst.fromClause).deepEqual(new FromClauseAstNode("input1"))
+    should(queryAst.fromClause).deepEqual(new SourceClauseAstNode("input1", []))
     should(queryAst.outputClause).deepEqual(new OutputClauseAstNode("output"))
   })
 
@@ -87,5 +90,33 @@ describe("Parsing queries", function () {
 
     // then
     should(queryAst.filterClause).deepEqual(new FilterClauseAstNode(new FilterField("field", new FieldQualifier("input", ["field"])), "==", new FilterField("stringValue", "something")))
+  })
+
+  it("Parses joins", function () {
+    // given
+    const tokens: IToken[] = [
+      new TokenSelect,
+      new TokenStar,
+      new TokenFrom, new TokenName("input1"),
+      new TokenJoin, new TokenName("input2"),
+      new TokenOn,
+      new TokenName("input1"), new TokenDot, new TokenName("field"),
+      new TokenComparator("=="),
+      new TokenName("input2"), new TokenDot, new TokenName("field"),
+      new TokenInto,
+      new TokenName("output")
+    ]
+
+    // when
+    const queryAst = Parser.ParseQuery(tokens)
+
+    // then
+    should(queryAst.fromClause).deepEqual(new SourceClauseAstNode("input1", [
+      new JoinAstNode("input2", new FilterClauseAstNode(
+        new FilterField("field", new FieldQualifier("input1", ["field"])),
+        "==",
+        new FilterField("field", new FieldQualifier("input2", ["field"]))
+      ))
+    ]))
   })
 })

@@ -15,10 +15,13 @@ import { FieldAstNode } from "./FieldAstNode";
 import { FieldQualifier } from "./FieldQualifer";
 import { FilterClauseAstNode } from "./FilterClauseAstNode";
 import { FilterField } from "./FilterField";
-import { FromClauseAstNode } from "./FromClauseAst";
+import { SourceClauseAstNode } from "./SourceClauseAst";
 import { OutputClauseAstNode } from "./OutputClauseAst";
 import { QueryAst } from "./QueryAst";
 import { SelectionClauseAstNode } from "./SelectionClauseAstNode";
+import { TokenJoin } from "../Lexer/TokenJoin";
+import { JoinAstNode } from "./JoinAstNode";
+import { TokenOn } from "../Lexer/TokenOn";
 
 /**
  * Create an unexpected token error
@@ -27,6 +30,9 @@ import { SelectionClauseAstNode } from "./SelectionClauseAstNode";
  * @returns 
  */
 function unexpectedToken(tokens: IToken[], expected: string) {
+  if (tokens.length === 0) {
+    return Error(`Unexpected end of stream. Expected: ${expected}`)
+  }
   return Error(`Unexpected token: ${tokens[0].type}. Expected: ${expected}`);
 }
 
@@ -73,10 +79,10 @@ function popIfTypeThrowElse<ExpectedType extends IToken>(tokens: IToken[], expec
 export class Parser {
   static ParseQuery(tokens: IToken[]): QueryAst {
     const selectionClause = this.parseSelectionClause(tokens);
-    const fromClause = this.parseFromClause(tokens);
+    const fromClause = this.parseSourceClause(tokens);
     const outputClause = this.parseOutputClause(tokens);
-    const filterClause = this.parseFilterClause(tokens);
-    return new QueryAst(selectionClause, fromClause, outputClause, filterClause);
+    const whereClause = this.parseWhereClause(tokens);
+    return new QueryAst(selectionClause, fromClause, outputClause, whereClause);
   }
 
   /**
@@ -141,17 +147,34 @@ export class Parser {
   }
 
   /**
-   * Parses FROM clause
-   * 
-   * limited to a single input for now.
+   * Parses source clause made of FROM/JOIN
    * 
    * @param tokens 
    * @returns 
    */
-  private static parseFromClause(tokens: IToken[]): FromClauseAstNode {
+  private static parseSourceClause(tokens: IToken[]): SourceClauseAstNode {
     popIfTypeThrowElse(tokens, TokenFrom.type)
+    //TODO: Thoughts: we might have to move away from that, I don't think the
+    // concept of main input actually makes sense, the model might be wrong.
+    const mainInput = this.parseInput(tokens);
+    const joins: JoinAstNode[] = []
+    while (popIfType(tokens, TokenJoin.type)) {
+      const input = this.parseInput(tokens);
+      popIfTypeThrowElse(tokens, TokenOn.type);
+      const filter = this.parseFilterClause(tokens);
+      joins.push(new JoinAstNode(input, filter));
+    }
+    return new SourceClauseAstNode(mainInput, joins);
+  }
+
+  /**
+   * I anticipate that this might change to an "input" class instead
+   * but for now simplify by using a string
+   * @param tokens 
+   */
+  private static parseInput(tokens: IToken[]): string {
     const input = popIfTypeThrowElse<TokenName>(tokens, TokenName.type);
-    return new FromClauseAstNode(input.value)
+    return input.value
   }
 
   /**
@@ -166,18 +189,22 @@ export class Parser {
     return new OutputClauseAstNode(output.value)
   }
 
+  private static parseWhereClause(tokens: IToken[]): FilterClauseAstNode | null {
+    if (!popIfType(tokens, TokenWhere.type)) {
+      return null
+    }
+    return this.parseFilterClause(tokens);
+  }
+
   /**
-   * Parses the WHERE clause.
+   * Parses a filter clause, such as WHERE or ON
    * 
    * For now limited to a simple x = y, where x an y can be a value or a field name.
    * 
    * @param tokens 
    * @returns 
    */
-  private static parseFilterClause(tokens: IToken[]): FilterClauseAstNode | null {
-    if (!popIfType(tokens, TokenWhere.type)) {
-      return null
-    }
+  private static parseFilterClause(tokens: IToken[]): FilterClauseAstNode {
     const partA = this.parseFilterElement(tokens);
     const comparator = popIfTypeThrowElse<TokenComparator>(tokens, TokenComparator.type)
     const partB = this.parseFilterElement(tokens);

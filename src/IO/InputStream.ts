@@ -6,7 +6,7 @@ export interface InputStreamParameters {
   getTimestamp?: (evt: any) => Date
 }
 
-type Listener = (evt: EventEnvelope) => void
+export type Listener = (evt: EventEnvelope) => void
 
 export class InputStream {
   events: EventEnvelope[] = []

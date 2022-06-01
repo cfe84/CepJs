@@ -12,6 +12,8 @@ import { TokenStar } from "./TokenStar";
 import { TokenStringValue } from "./TokenStringValue";
 import { TokenWhere } from "./TokenWhere";
 import { TokenWhiteSpace } from "./TokenWhiteSpace";
+import { TokenJoin } from "./TokenJoin";
+import { TokenOn } from "./TokenOn";
 
 interface Cursor {
   query: string,
@@ -68,6 +70,8 @@ export class Lexer {
       // return the first matching token
       const match = this.parse_select(cursor)
         || this.parse_from(cursor)
+        || this.parse_join(cursor)
+        || this.parse_on(cursor)
         || this.parse_where(cursor)
         || this.parse_into(cursor)
         || this.parse_groupby(cursor)
@@ -106,6 +110,12 @@ export class Lexer {
 
   static parse_select(cursor: Cursor): TokenSelect | false {
     return this.parse_regex(cursor, "select", () => new TokenSelect())
+  }
+  static parse_join(cursor: Cursor): IToken | false {
+    return this.parse_regex(cursor, "join", () => new TokenJoin())
+  }
+  static parse_on(cursor: Cursor): IToken | false {
+    return this.parse_regex(cursor, "on", () => new TokenOn())
   }
 
   static parse_from(cursor: Cursor): TokenFrom | false {

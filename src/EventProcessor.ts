@@ -1,4 +1,4 @@
-import { Job } from "./Execution/Job"
+import { Job } from "./Processing/Job"
 import { InputStream } from "./IO/InputStream"
 import { OutputStream } from "./IO/OutputStream"
 import { Lexer } from "./Lexer/Lexer"
@@ -32,11 +32,11 @@ export class EventProcessor {
   }
 
   /**
-   * Create a query, that will run in a single Job.
-   * @param query 
+   * Create a job.
+   * @param query that will power the Job. 
    * @returns New job running the query.
    */
-  createQuery(query: string) {
+  createJob(query: string) {
     const tokens = Array.from(Lexer.lex(query))
     const ast = Parser.ParseQuery(tokens)
     return new Job(ast, this.inputStreams, this.outputStreams)

@@ -91,4 +91,5 @@ VALUE_FIELD :=
 
 - [ ] JOIN
 - [ ] GROUP BY and support for time windows
+- [ ] Testing for all exceptions
 - [ ] Event sources can be made better, by both sorting and partitioning them to make search and expiry more efficient.

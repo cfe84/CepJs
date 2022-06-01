@@ -1,11 +1,11 @@
 import { FieldAstNode } from "../src/Parser/FieldAstNode";
-import { FromClauseAstNode } from "../src/Parser/FromClauseAst";
+import { SourceClauseAstNode } from "../src/Parser/SourceClauseAst";
 import { OutputClauseAstNode } from "../src/Parser/OutputClauseAst";
 import { QueryAst } from "../src/Parser/QueryAst"
 import { SelectionClauseAstNode } from "../src/Parser/SelectionClauseAstNode";
 import { InputStream } from "../src/IO/InputStream"
 import { OutputStream } from "../src/IO/OutputStream"
-import { Job } from "../src/Execution/Job";
+import { Job } from "../src/Processing/Job";
 import * as should from "should";
 import { FieldQualifier } from "../src/Parser/FieldQualifer";
 import { FilterClauseAstNode } from "../src/Parser/FilterClauseAstNode";
@@ -16,7 +16,7 @@ describe("Job", function () {
     it(`Pipes events with ${JSON.stringify(selectFields)}`, function () {
       // given
       const query = new QueryAst(new SelectionClauseAstNode([selectFields]),
-        new FromClauseAstNode("input"),
+        new SourceClauseAstNode("input", []),
         new OutputClauseAstNode("output"),
         null);
       const input = new InputStream({ name: "input" })
@@ -46,7 +46,7 @@ describe("Job", function () {
   it(`Selects a field`, function () {
     // given
     const query = new QueryAst(new SelectionClauseAstNode([new FieldAstNode("qualified", new FieldQualifier("input", ["somethingElse"]))]),
-      new FromClauseAstNode("input"),
+      new SourceClauseAstNode("input", []),
       new OutputClauseAstNode("output"),
       null);
     const input = new InputStream({ name: "input" })
@@ -78,7 +78,7 @@ describe("Job", function () {
         new FieldAstNode("qualified", new FieldQualifier("input", ["name"])),
         new FieldAstNode("qualified", new FieldQualifier("input", ["temperature"]))
       ]),
-      new FromClauseAstNode("input"),
+      new SourceClauseAstNode("input", []),
       new OutputClauseAstNode("output"),
       new FilterClauseAstNode(new FilterField("field", new FieldQualifier("input", ["temperature"])), ">", new FilterField("numericValue", 50)));
     const input = new InputStream({ name: "input" })

@@ -3,6 +3,8 @@ import { Lexer } from "../src/Lexer/Lexer";
 import { TokenSelect } from "../src/Lexer/TokenSelect";
 import { TokenStar } from "../src/Lexer/TokenStar";
 import { TokenComma } from "../src/Lexer/TokenComma";
+import { TokenJoin } from "../src/Lexer/TokenJoin";
+import { TokenOn } from "../src/Lexer/TokenOn";
 import { TokenFrom } from "../src/Lexer/TokenFrom";
 import { TokenName } from "../src/Lexer/TokenName";
 import { TokenDot } from "../src/Lexer/TokenDot";
@@ -83,4 +85,28 @@ describe("Lexer", function () {
   testFilter("==", "test")
   testFilter("!=", "")
   testFilter("==", "with escaped \"\"string\"\" within")
+
+  it("should lex join", function () {
+    //given
+    const query = "From input1 JOIN input2 ON input1.something == input2.something"
+
+    // when
+    const tokens = Array.from(Lexer.lex(query))
+
+    // then
+    should(tokens).be.deepEqual([
+      new TokenFrom,
+      new TokenName("input1"),
+      new TokenJoin,
+      new TokenName("input2"),
+      new TokenOn,
+      new TokenName("input1"),
+      new TokenDot,
+      new TokenName("something"),
+      new TokenComparator("=="),
+      new TokenName("input2"),
+      new TokenDot,
+      new TokenName("something"),
+    ])
+  })
 });

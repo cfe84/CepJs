@@ -6,7 +6,7 @@ const input = processor.createInputStream("input")
 const output = processor.createOutputStream("output")
 output.registerCallback((evt) => console.log(JSON.stringify(evt)))
 
-processor.createQuery("Select input.name from input into output where input.temp > 49")
+processor.createJob("Select input.name from input into output where input.temp > 49")
 
 input.pushEvent({ name: "Event 0", temp: 60 })
 input.pushEvent({ name: "Event 1", temp: 39 })

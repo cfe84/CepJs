@@ -1,5 +1,5 @@
 import { FilterClauseAstNode } from "./FilterClauseAstNode";
-import { FromClauseAstNode } from "./FromClauseAst";
+import { SourceClauseAstNode } from "./SourceClauseAst";
 import { IAstNode } from "./IAstNode";
 import { OutputClauseAstNode } from "./OutputClauseAst";
 import { SelectionClauseAstNode } from "./SelectionClauseAstNode";
@@ -12,7 +12,7 @@ export class QueryAst implements IAstNode {
   type = QueryAst.type
   constructor(
     public selectionClause: SelectionClauseAstNode,
-    public fromClause: FromClauseAstNode,
+    public fromClause: SourceClauseAstNode,
     public outputClause: OutputClauseAstNode,
     public filterClause: FilterClauseAstNode | null) { }
 }

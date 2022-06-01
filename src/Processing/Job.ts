@@ -1,10 +1,10 @@
 import { EventEnvelope } from "../IO/EventEnvelope";
-import { InputStream } from "../IO/InputStream";
+import { InputStream, Listener } from "../IO/InputStream";
 import { OutputStream } from "../IO/OutputStream";
 import { FieldQualifier } from "../Parser/FieldQualifer";
 import { FilterClauseAstNode } from "../Parser/FilterClauseAstNode";
 import { FilterField } from "../Parser/FilterField";
-import { FromClauseAstNode } from "../Parser/FromClauseAst";
+import { SourceClauseAstNode } from "../Parser/SourceClauseAst";
 import { OutputClauseAstNode } from "../Parser/OutputClauseAst";
 import { QueryAst } from "../Parser/QueryAst";
 import { SelectionClauseAstNode } from "../Parser/SelectionClauseAstNode";
@@ -13,6 +13,7 @@ type Dictionary<T> = { [key: string]: T }
 
 type Projector = (sources: Dictionary<any>) => any
 type Filter = (sources: Dictionary<any>) => boolean
+type Output = (evt: any) => void
 
 function copyObject(obj: any, res: any): any {
   Object.keys(obj).forEach(key => res[key] = obj[key])
@@ -38,14 +39,19 @@ export class Job {
     const projector = this.generateProjector(query.selectionClause)
     const output = this.generateOutput(query.outputClause)
     this.getInputs(query.fromClause).forEach(input => {
-      input.addListener((evt) => {
-        const sources: Dictionary<any> = {}
-        sources[input.params.name] = evt.body;
-        if (filter(sources)) {
-          output(projector(sources))
-        }
-      })
+      input.addListener(this.createEventListener(input, filter, output, projector))
     })
+  }
+
+  private createEventListener(input: InputStream, filter: Filter, output: Output, projector: Projector): Listener {
+    return (evt) => {
+      const sources: Dictionary<any> = {}
+      sources[input.params.name] = evt.body;
+      if (filter(sources)) {
+        output(projector(sources))
+      }
+    }
+
   }
 
   /**
@@ -66,10 +72,10 @@ export class Job {
    * @param fromClause 
    * @returns 
    */
-  private getInputs(fromClause: FromClauseAstNode): InputStream[] {
-    const input = this.inputs.find(input => input.params.name === fromClause.input)
+  private getInputs(fromClause: SourceClauseAstNode): InputStream[] {
+    const input = this.inputs.find(input => input.params.name === fromClause.mainInput)
     if (!input) {
-      throw Error(`Input not found: "${fromClause.input}"`)
+      throw Error(`Input not found: "${fromClause.mainInput}"`)
     }
     return [input]
   }
