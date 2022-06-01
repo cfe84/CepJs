@@ -27,7 +27,7 @@ export class Job {
     const filter = this.generateFilter(query.filterClause)
     const projector = this.generateProjector(query.selectionClause)
     const output = this.generateOutput(query.outputClause)
-    inputs.forEach(input => {
+    this.getInputs(query.fromClause).forEach(input => {
       input.addListener((evt) => {
         const sources: Dictionary<any> = {}
         sources[input.params.name] = evt.body;
@@ -41,7 +41,7 @@ export class Job {
   private generateOutput(outputClause: OutputClauseAstNode) {
     const output = this.outputs.find(output => outputClause.output === output.name)
     if (!output) {
-      throw Error("Output not found " + outputClause.output)
+      throw Error(`Output not found: "${outputClause.output}"`)
     }
     return (evt: any) => output.pushEvent(evt)
   }
@@ -49,7 +49,7 @@ export class Job {
   private getInputs(fromClause: FromClauseAstNode): InputStream[] {
     const input = this.inputs.find(input => input.params.name === fromClause.input)
     if (!input) {
-      throw Error("Input not found " + fromClause.input)
+      throw Error(`Input not found: "${fromClause.input}"`)
     }
     return [input]
   }
