@@ -51,6 +51,9 @@ function subStr(cursor: Cursor, from: number, to: number) {
   return cursor.query.substring(from, to)
 }
 
+/**
+ * Converts a string into a series of tokens.
+ */
 export class Lexer {
   static *lex(query: string): Generator<IToken> {
     let cursor: Cursor = {
@@ -58,9 +61,11 @@ export class Lexer {
       query: query
     }
     while (!endOfStream(cursor)) {
+      // ignore whitespace
       if (this.parse_whitespace(cursor)) {
         continue;
       }
+      // return the first matching token
       const match = this.parse_select(cursor)
         || this.parse_from(cursor)
         || this.parse_where(cursor)
@@ -77,7 +82,7 @@ export class Lexer {
         yield match
       } else {
         // Todo: better error handling
-        console.error(`Unexpected token ${cursor.query[cursor.index]} at ${cursor.index}`);
+        console.error(`Unexpected token "${cursor.query[cursor.index]}" at pos ${cursor.index}`);
         break;
       }
     }
@@ -137,7 +142,6 @@ export class Lexer {
   static parse_name(cursor: Cursor): IToken | false {
     return this.parse_regex(cursor, "\\w(?:\\w|\\d)*", (name: string[]) => new TokenName(name[0]))
   }
-
 
   static parse_regex(cursor: Cursor, regex: string, tokenGenerator: (regexRes: string[]) => IToken): IToken | false {
     const res = nextWord(cursor, regex);
