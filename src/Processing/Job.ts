@@ -1,4 +1,3 @@
-import { EventEnvelope } from "../IO/EventEnvelope";
 import { InputStream, Listener } from "../IO/InputStream";
 import { OutputStream } from "../IO/OutputStream";
 import { FieldQualifier } from "../Parser/FieldQualifer";
@@ -10,17 +9,50 @@ import { QueryAst } from "../Parser/QueryAst";
 import { SelectionClauseAstNode } from "../Parser/SelectionClauseAstNode";
 
 type Dictionary<T> = { [key: string]: T }
-
-type Projector = (sources: Dictionary<any>) => any
-type Filter = (sources: Dictionary<any>) => boolean
+/**
+ * An event composed of events from several sources, using the source name
+ * as a key.
+ */
+type ComplexEvent = Dictionary<any>
+type Projector = (complexEvent: ComplexEvent) => any
+type Filter = (complexEvent: ComplexEvent) => boolean
 type Output = (evt: any) => void
 
-function copyObject(obj: any, res: any): any {
-  Object.keys(obj).forEach(key => res[key] = obj[key])
+/**
+ * Get field from an event composed from events from several inputs, using a field qualifier
+ * @param complexEvent 
+ * @param field 
+ * @returns 
+ */
+function getField(complexEvent: ComplexEvent, field: FieldQualifier): any {
+  let res = complexEvent[field.input]
+  for (let qualifier of field.qualifiers) {
+    console.log(qualifier)
+    if (res === undefined) {
+      return undefined
+    }
+    res = res[qualifier]
+  }
+  return res;
 }
 
-function copyFromSources(sources: Dictionary<any>, res: any): any {
-  Object.values(sources).forEach(obj => copyObject(obj, res))
+/**
+ * Copy all properties of object into target
+ * @param from 
+ * @param to 
+ */
+function copyObject(from: any, to: any): any {
+  Object.keys(from).forEach(key => to[key] = from[key])
+}
+
+/**
+ * Copy all properties in events constituting a complex event
+ * into target
+ * @param complexEvent 
+ * @param target 
+ */
+function copyFromComplexEvent(complexEvent: ComplexEvent, target: any): any {
+  Object.values(complexEvent).forEach(obj => copyObject(obj, target))
 }
 
 /**
@@ -28,21 +60,38 @@ function copyFromSources(sources: Dictionary<any>, res: any): any {
  */
 export class Job {
   /**
-   * Create a job and perform all registrations.
+   * Compiles the query, create a job from it. Registers all listeners.
+   * 
+   * Execution plan =
+   * 1. JOIN
+   * 2. GROUP BY (NOT SUPPORTED YET)
+   * 3. FILTER
+   * 4. PROJECT
+   * 5. OUTPUT
    * 
    * @param query 
-   * @param inputs 
+   * @param availableInputs 
    * @param outputs 
    */
-  constructor(query: QueryAst, private inputs: InputStream[], private outputs: OutputStream[]) {
+  constructor(query: QueryAst, private availableInputs: InputStream[], private outputs: OutputStream[]) {
     const filter = this.generateFilter(query.filterClause)
     const projector = this.generateProjector(query.selectionClause)
     const output = this.generateOutput(query.outputClause)
-    this.getInputs(query.fromClause).forEach(input => {
+    // Add an event listener for all sources in the query
+    const inputs = this.getInputs(query.fromClause)
+    inputs.forEach(input => {
       input.addListener(this.createEventListener(input, filter, output, projector))
     })
   }
 
+  /**
+   * Compiled event listener to run everytime we run a new event.
+   * @param input Input to which to attach
+   * @param filter 
+   * @param output 
+   * @param projector 
+   * @returns 
+   */
   private createEventListener(input: InputStream, filter: Filter, output: Output, projector: Projector): Listener {
     return (evt) => {
       const sources: Dictionary<any> = {}
@@ -51,7 +100,6 @@ export class Job {
         output(projector(sources))
       }
     }
-
   }
 
   /**
@@ -73,11 +121,14 @@ export class Job {
    * @returns 
    */
   private getInputs(fromClause: SourceClauseAstNode): InputStream[] {
-    const input = this.inputs.find(input => input.params.name === fromClause.mainInput)
-    if (!input) {
-      throw Error(`Input not found: "${fromClause.mainInput}"`)
-    }
-    return [input]
+    const inputsInQuery = [fromClause.mainInput].concat(fromClause.joins.map(join => join.input))
+    return inputsInQuery.map(inputInQuery => {
+      const input = this.availableInputs.find(input => input.params.name === inputInQuery);
+      if (!input) {
+        throw Error(`Input not found: "${inputInQuery}"`)
+      }
+      return input;
+    });
   }
 
   /**
@@ -100,7 +151,7 @@ export class Job {
       "!=": (a: any, b: any) => a != b,
     }
     const operator = operators[filterClause.comparator]
-    return (sources: Dictionary<any>) => {
+    return (sources: ComplexEvent) => {
       const a = valueA(sources);
       const b = valueB(sources);
       return operator(a, b)
@@ -119,7 +170,7 @@ export class Job {
       return () => field.value as string
     } else {
       const fieldQualifier = field.value as FieldQualifier
-      return (sources: Dictionary<any>) => sources[fieldQualifier.input][fieldQualifier.qualifiers[0]]
+      return (complexEvent: ComplexEvent) => getField(complexEvent, fieldQualifier)
     }
   }
 
@@ -129,25 +180,25 @@ export class Job {
    * @returns 
    */
   private generateProjector(selectionClause: SelectionClauseAstNode): Projector {
-    let projectors: ((sources: Dictionary<any>, res: any) => void)[] = [];
+    let projectors: ((complexEvent: ComplexEvent, res: any) => void)[] = [];
 
     for (let field of selectionClause.fields) {
       const input = field.fieldQualifier?.input
       const fieldName = field.fieldQualifier?.qualifiers[0]
-      if (input && !this.inputs.find(input => input.params.name === field.fieldQualifier?.input)) {
+      if (input && !this.availableInputs.find(input => input.params.name === field.fieldQualifier?.input)) {
         throw Error(`Input stream not found: ${field.fieldQualifier?.input}`)
       }
       if (field.fieldType === "*") {
-        projectors.push((sources: Dictionary<any>, res: any) => copyFromSources(sources, res))
+        projectors.push((sources: ComplexEvent, res: any) => copyFromComplexEvent(sources, res))
       } else if (field.fieldQualifier?.qualifiers[0] === "*") {
-        projectors.push((sources: Dictionary<any>, res: any) => copyObject(sources[input as string], res))
+        projectors.push((sources: ComplexEvent, res: any) => copyObject(sources[input as string], res))
       } else {
-        projectors.push((sources: Dictionary<any>, res: any) => {
-          res[fieldName as string] = sources[input as string][fieldName as string]
+        projectors.push((sources: ComplexEvent, res: any) => {
+          res[fieldName as string] = getField(sources, field.fieldQualifier as FieldQualifier)
         })
       }
     }
-    return (sources: Dictionary<any>) => {
+    return (sources: ComplexEvent) => {
       const res = {}
       projectors.forEach(projector => projector(sources, res))
       return res;
