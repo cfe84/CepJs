@@ -1,7 +1,9 @@
 import { EventEnvelope } from "../IO/EventEnvelope";
 import { InputStream } from "../IO/InputStream";
 import { OutputStream } from "../IO/OutputStream";
+import { FieldQualifier } from "../Parser/FieldQualifer";
 import { FilterClauseAstNode } from "../Parser/FilterClauseAstNode";
+import { FilterField } from "../Parser/FilterField";
 import { FromClauseAstNode } from "../Parser/FromClauseAst";
 import { OutputClauseAstNode } from "../Parser/OutputClauseAst";
 import { QueryAst } from "../Parser/QueryAst";
@@ -56,8 +58,33 @@ export class Job {
     if (!filterClause) {
       return () => true
     }
-    // Todo: generate filter
-    return () => true
+    const valueA = this.generateValueSelector(filterClause.partA)
+    const valueB = this.generateValueSelector(filterClause.partB)
+    const operators = {
+      ">": (a: any, b: any) => a > b,
+      ">=": (a: any, b: any) => a >= b,
+      "<": (a: any, b: any) => a < b,
+      "<=": (a: any, b: any) => a <= b,
+      "==": (a: any, b: any) => a == b,
+      "!=": (a: any, b: any) => a != b,
+    }
+    const operator = operators[filterClause.comparator]
+    return (sources: Dictionary<any>) => {
+      const a = valueA(sources);
+      const b = valueB(sources);
+      return operator(a, b)
+    }
+  }
+
+  private generateValueSelector(field: FilterField) {
+    if (field.type === "numericValue") {
+      return () => field.value as number
+    } else if (field.type === "stringValue") {
+      return () => field.value as string
+    } else {
+      const fieldQualifier = field.value as FieldQualifier
+      return (sources: Dictionary<any>) => sources[fieldQualifier.input][fieldQualifier.qualifiers[0]]
+    }
   }
 
   private generateProjector(selectionClause: SelectionClauseAstNode): Projector {
