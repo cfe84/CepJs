@@ -20,20 +20,25 @@ Create io:
   heatWarning.registerCallback((outputEvent) => {
     console.log(`Warning! Temperature is too high: ${outputEvent}`);
   });
-  const heatWarning = cep.createInputStream("tempReadings");
+  const tempReadings = cep.createInputStream("tempReadings");
 ```
 
 Create query:
 ```ts
-  const query = cep.createQuery("SELECT * FROM input1 INTO output1 WHERE input1.heat > 50");
+  const query = cep.createQuery("SELECT input1.name FROM input1 INTO output1 WHERE input1.heat > 50");
 ```
 
 Send some events:
 ```ts
-  tempReadings.pushEvent(inputEvent1);
-  tempReadings.pushEvent(inputEvent2);
-  tempReadings.pushEvents([inputEvent3, inputEvent4]);
+  tempReadings.pushEvent({heat: 60, name: "evt1"});
+  tempReadings.pushEvent({heat: 40, name: "evt2"});
+  tempReadings.pushEvents([{heat: 39, name: "evt3"}, {heat: 54, name: "evt4"}]);
+```
 
+See output:
+```ts
+  // evt1
+  // evt4
 ```
 
 # Query
@@ -81,3 +86,9 @@ VALUE_FIELD :=
 | NAME
 
 ```
+
+# Improvements
+
+- [ ] JOIN
+- [ ] GROUP BY and support for time windows
+- [ ] Event sources can be made better, by both sorting and partitioning them to make search and expiry more efficient.
