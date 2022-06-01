@@ -42,7 +42,7 @@ SELECT * FROM input1 INTO output1
 
 SELECT input1.name, input1.value FROM input1 INTO output1 WHERE input1.someValue > 10
 
-SELECT input1.name, count(*) as total FROM input1 INTO output1 WHERE input1.someValue > 10 GROUP BY input1.name
+SELECT input1.name, count(*) as total FROM input1 INTO output1 WHERE input1.someValue > 10 GROUP BY input1.name, TumblingWindow(seconds, 10)
 
 # Grammar
 
