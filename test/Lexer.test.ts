@@ -2,6 +2,7 @@ import * as should from "should";
 import { Lexer } from "../src/Lexer/Lexer";
 import { TokenSelect } from "../src/Lexer/TokenSelect";
 import { TokenStar } from "../src/Lexer/TokenStar";
+import { TokenComma } from "../src/Lexer/TokenComma";
 import { TokenFrom } from "../src/Lexer/TokenFrom";
 import { TokenName } from "../src/Lexer/TokenName";
 import { TokenDot } from "../src/Lexer/TokenDot";
@@ -33,7 +34,7 @@ describe("Lexer", function () {
 
   it("should parse SELECT with fields", function () {
     // given
-    const query = "Select something.fieldname FROM input GROUP BY input.fieldname"
+    const query = "Select something.fieldname, else.* FROM input GROUP BY input.fieldname"
 
     // when
     const tokens = Array.from(Lexer.lex(query));
@@ -42,8 +43,12 @@ describe("Lexer", function () {
     should(tokens).be.deepEqual([
       new TokenSelect,
       new TokenName("something"),
-      new TokenDot(),
+      new TokenDot,
       new TokenName("fieldname"),
+      new TokenComma,
+      new TokenName("else"),
+      new TokenDot,
+      new TokenStar,
       new TokenFrom,
       new TokenName("input"),
       new TokenGroupBy,

@@ -2,6 +2,7 @@ import { IToken } from "./IToken";
 import { Comparator, TokenComparator } from "./TokenComparator";
 import { TokenDot } from "./TokenDot";
 import { TokenFrom } from "./TokenFrom";
+import { TokenComma } from "./TokenComma";
 import { TokenGroupBy } from "./TokenGroupBy";
 import { TokenInto } from "./TokenInto";
 import { TokenName } from "./TokenName";
@@ -65,8 +66,9 @@ export class Lexer {
         || this.parse_where(cursor)
         || this.parse_into(cursor)
         || this.parse_groupby(cursor)
-        || this.parse_star(cursor)
+        || this.parse_comma(cursor)
         || this.parse_dot(cursor)
+        || this.parse_star(cursor)
         || this.parse_comparator(cursor)
         || this.parse_stringValue(cursor)
         || this.parse_numericValue(cursor)
@@ -85,8 +87,12 @@ export class Lexer {
     return this.parse_regex(cursor, "\\s+", () => new TokenWhiteSpace())
   }
 
-  static parse_dot(cursor: Cursor): TokenStar | false {
+  static parse_dot(cursor: Cursor): TokenDot | false {
     return this.parse_regex(cursor, "[.]", () => new TokenDot())
+  }
+
+  static parse_comma(cursor: Cursor): TokenComma | false {
+    return this.parse_regex(cursor, ",", () => new TokenComma())
   }
 
   static parse_star(cursor: Cursor): TokenStar | false {
