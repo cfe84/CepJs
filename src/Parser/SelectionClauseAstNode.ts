@@ -8,5 +8,5 @@ import { IAstNode } from "./IAstNode";
 export class SelectionClauseAstNode implements IAstNode {
   static type = "SELECTION_CLAUSE"
   type = SelectionClauseAstNode.type
-  constructor(private fields: FieldAstNode[]) { }
+  constructor(public fields: FieldAstNode[]) { }
 }

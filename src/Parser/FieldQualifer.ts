@@ -1,5 +1,5 @@
 export class FieldQualifier {
-  constructor(input: string, qualifiers: string[]) {
+  constructor(public input: string, public qualifiers: string[]) {
 
   }
 }
