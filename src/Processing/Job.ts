@@ -3,11 +3,13 @@ import { OutputStream } from "../IO/OutputStream";
 import { FieldQualifier } from "../Parser/FieldQualifer";
 import { FilterClauseAstNode } from "../Parser/FilterClauseAstNode";
 import { FilterField } from "../Parser/FilterField";
-import { SourceClauseAstNode } from "../Parser/SourceClauseAst";
+import { SourceClauseAstNode, SOURCE_TYPE } from "../Parser/SourceClauseAst";
 import { OutputClauseAstNode } from "../Parser/OutputClauseAst";
 import { QueryAst } from "../Parser/QueryAst";
 import { SelectionClauseAstNode } from "../Parser/SelectionClauseAstNode";
 import { EventEnvelope } from "../IO/EventEnvelope";
+import { SingleSourceAstNode } from "../Parser/SingleSourceAstNode";
+import { JoinAstNode } from "../Parser/JoinAstNode";
 
 type Dictionary<T> = { [key: string]: T }
 /**
@@ -135,7 +137,9 @@ export class Job {
    * @returns 
    */
   private getInputs(fromClause: SourceClauseAstNode): InputStream[] {
-    const inputsInQuery = [fromClause.mainInput].concat(fromClause.joins.map(join => join.to))
+    const inputsInQuery = fromClause.sourceType === SOURCE_TYPE.singleSource
+      ? [(fromClause.value as SingleSourceAstNode).source]
+      : (fromClause.value as JoinAstNode[]).map(join => join.to);
     return inputsInQuery.map(inputInQuery => {
       const input = this.availableInputs.find(input => input.params.name === inputInQuery);
       if (!input) {
@@ -156,11 +160,17 @@ export class Job {
       initialEvent[inputName] = evt;
       return [initialEvent]
     }
+
+    if (sourceClause.sourceType === SOURCE_TYPE.singleSource) {
+      return (getSeedEvents)
+    }
+    const joins = (sourceClause.value as JoinAstNode[])
+
     const allInputs = this.getInputs(sourceClause)
 
     let steps: ((evt: ComplexEvent[]) => ComplexEvent[])[] = []
     // Todo: sort clauses by eventsource size to make it more efficient
-    for (let join of sourceClause.joins) {
+    for (let join of joins) {
 
       // get the missing input
       // create the field retrievers

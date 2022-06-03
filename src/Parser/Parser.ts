@@ -15,13 +15,14 @@ import { FieldAstNode } from "./FieldAstNode";
 import { FieldQualifier } from "./FieldQualifer";
 import { FilterClauseAstNode } from "./FilterClauseAstNode";
 import { FilterField } from "./FilterField";
-import { SourceClauseAstNode } from "./SourceClauseAst";
+import { SourceClauseAstNode, SOURCE_TYPE } from "./SourceClauseAst";
 import { OutputClauseAstNode } from "./OutputClauseAst";
 import { QueryAst } from "./QueryAst";
 import { SelectionClauseAstNode } from "./SelectionClauseAstNode";
 import { TokenJoin } from "../Lexer/TokenJoin";
 import { JoinAstNode } from "./JoinAstNode";
 import { TokenOn } from "../Lexer/TokenOn";
+import { SingleSourceAstNode } from "./SingleSourceAstNode";
 
 /**
  * Create an unexpected token error
@@ -156,8 +157,7 @@ export class Parser {
     popIfTypeThrowElse(tokens, TokenFrom.type)
     //TODO: Thoughts: we might have to move away from that, I don't think the
     // concept of main input actually makes sense, the model might be wrong.
-    const mainInput = this.parseInput(tokens);
-    let fromInput = mainInput
+    let fromInput = this.parseInput(tokens);
     const joins: JoinAstNode[] = []
     while (popIfType(tokens, TokenJoin.type)) {
       const toInput = this.parseInput(tokens);
@@ -166,7 +166,11 @@ export class Parser {
       joins.push(new JoinAstNode(fromInput, toInput, filter));
       fromInput = toInput;
     }
-    return new SourceClauseAstNode(mainInput, joins);
+    if (joins.length) {
+      return new SourceClauseAstNode(SOURCE_TYPE.join, joins)
+    } else {
+      return new SourceClauseAstNode(SOURCE_TYPE.singleSource, new SingleSourceAstNode(fromInput));
+    }
   }
 
   /**

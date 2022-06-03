@@ -1,5 +1,5 @@
 import { FieldAstNode } from "../src/Parser/FieldAstNode";
-import { SourceClauseAstNode } from "../src/Parser/SourceClauseAst";
+import { SourceClauseAstNode, SOURCE_TYPE } from "../src/Parser/SourceClauseAst";
 import { OutputClauseAstNode } from "../src/Parser/OutputClauseAst";
 import { QueryAst } from "../src/Parser/QueryAst"
 import { SelectionClauseAstNode } from "../src/Parser/SelectionClauseAstNode";
@@ -11,13 +11,14 @@ import { FieldQualifier } from "../src/Parser/FieldQualifer";
 import { FilterClauseAstNode } from "../src/Parser/FilterClauseAstNode";
 import { FilterField } from "../src/Parser/FilterField";
 import { JoinAstNode } from "../src/Parser/JoinAstNode";
+import { SingleSourceAstNode } from "../src/Parser/SingleSourceAstNode";
 
 describe("Job", function () {
   function testPipe(selectFields: FieldAstNode) {
     it(`Pipes events with ${JSON.stringify(selectFields)}`, function () {
       // given
       const query = new QueryAst(new SelectionClauseAstNode([selectFields]),
-        new SourceClauseAstNode("input", []),
+        new SourceClauseAstNode(SOURCE_TYPE.singleSource, new SingleSourceAstNode("input")),
         new OutputClauseAstNode("output"),
         null);
       const input = new InputStream({ name: "input" })
@@ -47,7 +48,7 @@ describe("Job", function () {
   it(`Selects a field`, function () {
     // given
     const query = new QueryAst(new SelectionClauseAstNode([new FieldAstNode("qualified", new FieldQualifier("input", ["somethingElse"]))]),
-      new SourceClauseAstNode("input", []),
+      new SourceClauseAstNode(SOURCE_TYPE.singleSource, new SingleSourceAstNode("input")),
       new OutputClauseAstNode("output"),
       null);
     const input = new InputStream({ name: "input" })
@@ -79,7 +80,7 @@ describe("Job", function () {
         new FieldAstNode("qualified", new FieldQualifier("input", ["name"])),
         new FieldAstNode("qualified", new FieldQualifier("input", ["temperature"]))
       ]),
-      new SourceClauseAstNode("input", []),
+      new SourceClauseAstNode(SOURCE_TYPE.singleSource, new SingleSourceAstNode("input")),
       new OutputClauseAstNode("output"),
       new FilterClauseAstNode(new FilterField("field", new FieldQualifier("input", ["temperature"])), ">", new FilterField("numericValue", 50)));
     const input = new InputStream({ name: "input" })
@@ -110,7 +111,7 @@ describe("Job", function () {
         new FieldAstNode("qualified", new FieldQualifier("input1", ["temperature"])),
         new FieldAstNode("qualified", new FieldQualifier("input2", ["deviceName"]))
       ]),
-      new SourceClauseAstNode("input1", [
+      new SourceClauseAstNode(SOURCE_TYPE.join, [
         new JoinAstNode("input1", "input2", new FilterClauseAstNode(
           new FilterField("field", new FieldQualifier("input1", ["deviceId"])),
           "==",
