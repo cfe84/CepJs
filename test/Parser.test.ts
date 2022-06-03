@@ -112,7 +112,7 @@ describe("Parsing queries", function () {
 
     // then
     should(queryAst.fromClause).deepEqual(new SourceClauseAstNode("input1", [
-      new JoinAstNode("input2", new FilterClauseAstNode(
+      new JoinAstNode("input1", "input2", new FilterClauseAstNode(
         new FilterField("field", new FieldQualifier("input1", ["field"])),
         "==",
         new FilterField("field", new FieldQualifier("input2", ["field"]))

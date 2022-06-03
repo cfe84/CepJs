@@ -157,12 +157,14 @@ export class Parser {
     //TODO: Thoughts: we might have to move away from that, I don't think the
     // concept of main input actually makes sense, the model might be wrong.
     const mainInput = this.parseInput(tokens);
+    let fromInput = mainInput
     const joins: JoinAstNode[] = []
     while (popIfType(tokens, TokenJoin.type)) {
-      const input = this.parseInput(tokens);
+      const toInput = this.parseInput(tokens);
       popIfTypeThrowElse(tokens, TokenOn.type);
       const filter = this.parseFilterClause(tokens);
-      joins.push(new JoinAstNode(input, filter));
+      joins.push(new JoinAstNode(fromInput, toInput, filter));
+      fromInput = toInput;
     }
     return new SourceClauseAstNode(mainInput, joins);
   }

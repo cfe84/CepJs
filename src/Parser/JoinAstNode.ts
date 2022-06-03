@@ -5,5 +5,5 @@ export class JoinAstNode implements IAstNode {
   static type = "JOIN"
   type = JoinAstNode.type
 
-  constructor(public input: string, public on: FilterClauseAstNode) { }
+  constructor(public from: string, public to: string, public on: FilterClauseAstNode) { }
 }
