@@ -59,6 +59,10 @@ export class InputStream {
     }
   }
 
+  /**
+   * Push events to the input stream
+   * @param evts Either a single event, or an array of events.
+   */
   public pushEvent(evts: any | any[]) {
     if (!Array.isArray(evts)) {
       evts = [evts]
