@@ -63,7 +63,6 @@ export class InputStream {
     if (!Array.isArray(evts)) {
       evts = [evts]
     }
-    this.expireEvents()
     const maxTimestamp = this.events.length ? this.events[this.events.length - 1] : new Date()
     const sorter = (a: EventEnvelope, b: EventEnvelope) => b.timestamp.getTime() - a.timestamp.getTime()
     let envelopes: EventEnvelope[] = evts.map((evt: any) => ({
@@ -78,6 +77,7 @@ export class InputStream {
     if (minTimeInEnvelopes < maxTimestamp) {
       this.events.sort(sorter)
     }
+    this.expireEvents()
     envelopes.forEach(envelope => this.listeners.forEach(listener => listener(envelope)))
   }
 }

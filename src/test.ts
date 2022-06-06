@@ -11,6 +11,7 @@ processor.createJob("Select input.name, input.temp, deviceInput.deviceName from 
 
 deviceInput.pushEvent({ deviceName: "device 1", deviceId: "d1" })
 deviceInput.pushEvent({ deviceName: "device 2", deviceId: "d2" })
+deviceInput.pushEvent({ deviceName: "device 2 duplicate", deviceId: "d2" })
 
 measurementInput.pushEvent({ name: "Event 0", temp: 60, deviceId: "d1" })
 measurementInput.pushEvent({ name: "Event 1", temp: 39, deviceId: "d1" })

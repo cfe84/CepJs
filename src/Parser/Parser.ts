@@ -163,6 +163,9 @@ export class Parser {
       const toInput = this.parseInput(tokens);
       popIfTypeThrowElse(tokens, TokenOn.type);
       const filter = this.parseFilterClause(tokens);
+      // TODO: This is wrong, fromInput should be determed using the filter.
+      // This assumes that we're doing a JOIN doing A -> B -> C, but we might
+      // actually do A -> B, A -> C.
       joins.push(new JoinAstNode(fromInput, toInput, filter));
       fromInput = toInput;
     }

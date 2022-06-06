@@ -96,7 +96,7 @@ describe("Job", function () {
     const evt2 = { name: "c2", temperature: 60 }
     const evt3 = { name: "c3", temperature: 39 }
     const evt4 = { name: "c4", temperature: 75 }
-    input.pushEvents([evt1, evt2, evt3, evt4])
+    input.pushEvent([evt1, evt2, evt3, evt4])
 
     // then
     should(res).be.deepEqual([evt2, evt4])
@@ -135,6 +135,8 @@ describe("Job", function () {
     const deviceEvt1 = { deviceName: "device 1", deviceId: 1 }
     const deviceEvt2 = { deviceName: "device 2", deviceId: 2 }
     const deviceEvt3 = { deviceName: "device 3", deviceId: 3 }
+    const deviceEvt4 = { deviceName: "device 4", deviceId: 4 }
+    const deviceEvt4dupe = { deviceName: "device 4 dupe", deviceId: 4 }
 
     const evt1No = { name: "c1", temperature: 29, deviceId: 1 }
     const evt2Yes = { name: "c2", temperature: 60, deviceId: 1 }
@@ -142,15 +144,18 @@ describe("Job", function () {
     const evt4Yes = { name: "c3", temperature: 51, deviceId: 2 }
     const evt5No = { name: "c4", temperature: 75, deviceId: 0 }
     const evt6Yes = { name: "c5", temperature: 75, deviceId: 3 }
+    const evt7Double = { name: "event will show twice with device 4 and 4 dupe", temperature: 51, deviceId: 4 }
 
-    input2.pushEvent([deviceEvt1, deviceEvt2])
-    input1.pushEvents([evt1No, evt2Yes, evt3No, evt4Yes, evt5No, evt6Yes])
+    input2.pushEvent([deviceEvt1, deviceEvt2, deviceEvt4, deviceEvt4dupe])
+    input1.pushEvent([evt1No, evt2Yes, evt3No, evt4Yes, evt5No, evt6Yes, evt7Double])
     input2.pushEvent(deviceEvt3)
 
     // then
     should(res).be.deepEqual([
       { name: evt2Yes.name, temperature: evt2Yes.temperature, deviceName: deviceEvt1.deviceName },
       { name: evt4Yes.name, temperature: evt4Yes.temperature, deviceName: deviceEvt2.deviceName },
+      { name: evt7Double.name, temperature: evt7Double.temperature, deviceName: deviceEvt4.deviceName },
+      { name: evt7Double.name, temperature: evt7Double.temperature, deviceName: deviceEvt4dupe.deviceName },
       { name: evt6Yes.name, temperature: evt6Yes.temperature, deviceName: deviceEvt3.deviceName },
     ])
   })
