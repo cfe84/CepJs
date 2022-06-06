@@ -34,7 +34,7 @@ Send some events:
 ```ts
   tempReadings.pushEvent({heat: 60, name: "evt1"});
   tempReadings.pushEvent({heat: 40, name: "evt2"});
-  tempReadings.pushEvents([{heat: 39, name: "evt3"}, {heat: 54, name: "evt4"}]);
+  tempReadings.pushEvent([{heat: 39, name: "evt3"}, {heat: 54, name: "evt4"}]);
 ```
 
 See output:
