@@ -38,6 +38,10 @@ export class InputStream {
   }
 
   public pushEvent(evt: any) {
-    this.pushEvents([evt])
+    if (Array.isArray(evt)) {
+      this.pushEvents(evt)
+    } else {
+      this.pushEvents([evt])
+    }
   }
 }

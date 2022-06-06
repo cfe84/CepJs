@@ -102,8 +102,7 @@ describe("Job", function () {
     should(res).be.deepEqual([evt2, evt4])
   })
 
-
-  it.skip(`Joins event streams`, function () {
+  it(`Joins event streams`, function () {
     // given
     const query = new QueryAst(new SelectionClauseAstNode(
       [
@@ -130,7 +129,8 @@ describe("Job", function () {
     const job = new Job(query, [input1, input2], [output])
 
     // when
-    // Note: in real life that could be a reference data, but this will do till we have
+
+    // Note: in real life that could be reference data, but this will do for this test we have
     // group by and time windows
     const deviceEvt1 = { deviceName: "device 1", deviceId: 1 }
     const deviceEvt2 = { deviceName: "device 2", deviceId: 2 }

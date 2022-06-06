@@ -144,7 +144,7 @@ export class Parser {
       const qualifier = popIfTypeThrowElse<TokenName>(tokens, TokenName.type)
       qualifiers.push(qualifier.value)
     }
-    return new FieldQualifier(inputName.value, qualifiers);
+    return new FieldQualifier(inputName.value.toLowerCase(), qualifiers);
   }
 
   /**
@@ -180,7 +180,7 @@ export class Parser {
    */
   private static parseInput(tokens: IToken[]): string {
     const input = popIfTypeThrowElse<TokenName>(tokens, TokenName.type);
-    return input.value
+    return input.value.toLowerCase()
   }
 
   /**
@@ -192,7 +192,7 @@ export class Parser {
   private static parseOutputClause(tokens: IToken[]): OutputClauseAstNode {
     popIfTypeThrowElse(tokens, TokenInto.type)
     const output = popIfTypeThrowElse<TokenName>(tokens, TokenName.type);
-    return new OutputClauseAstNode(output.value)
+    return new OutputClauseAstNode(output.value.toLowerCase())
   }
 
   private static parseWhereClause(tokens: IToken[]): FilterClauseAstNode | null {
