@@ -100,6 +100,7 @@ Finally, output specified in the query is called for each output event.
 
 # Improvements
 
+- [ ] Reference data (for now, reference data can be inserted in a fake input event stream with expiry set to `MAX_SAFE_INTEGER`)
 - [X] JOIN
 - [ ] GROUP BY and support for time windows
 - [ ] Aliases for SELECT
