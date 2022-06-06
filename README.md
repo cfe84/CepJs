@@ -48,7 +48,7 @@ See output:
 ```sql
 SELECT * FROM input1 INTO output1
 
-SELECT input1.name, input2.value FROM input1 JOIN input2 ON input1.id == input2.id INTO output1 WHERE input1value > 10
+SELECT input1.name, input2.value FROM input1 JOIN input2 ON input1.id == input2.id INTO output1 WHERE input1.value > 10
 
 # Unsupported yet:
 SELECT input1.name, count(*) as total FROM input1 INTO output1 WHERE input1.someValue > 10 GROUP BY input1.name, TumblingWindow(seconds, 10)
