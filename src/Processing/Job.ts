@@ -22,17 +22,6 @@ type Filter = (complexEvent: ComplexEvent) => boolean
 type Join = (evt: any, eventInputStreamName: string, inputs: Dictionary<InputStream>) => ComplexEvent[]
 type Output = (evt: any) => void
 
-interface JoinedEvent {
-  fieldValue: any,
-  type: "complexEvent" | "regularEvent",
-  value: ComplexEvent | any
-}
-
-interface Input {
-  name: string,
-  events: EventEnvelope[]
-}
-
 const stringComparators = {
   ">": (a: any, b: any) => a > b,
   ">=": (a: any, b: any) => a >= b,
@@ -95,6 +84,10 @@ function copyComplexEvent(complexEvent: ComplexEvent): any {
     res[key] = complexEvent[key];
   }
   return res;
+}
+
+function findInput(inputs: InputStream[], name?: string) {
+  return inputs && name && inputs.find(input => input.params.name.toLowerCase() === name.toLowerCase());
 }
 
 /**
@@ -162,11 +155,11 @@ export class Job {
       : [(fromClause.value as JoinAstNode[])[0].from].concat((fromClause.value as JoinAstNode[]).map(join => join.to));
     const res: Dictionary<InputStream> = {}
     inputsInQuery.forEach(inputInQuery => {
-      const input = this.inputs.find(input => input.params.name === inputInQuery);
+      const input = findInput(this.inputs, inputInQuery);
       if (!input) {
         throw Error(`Input not found: "${inputInQuery}"`)
       }
-      res[input.params.name] = input
+      res[input.params.name.toLowerCase()] = input
     });
     return res
   }
@@ -188,60 +181,58 @@ export class Job {
     }
 
     const joins = (sourceClause.value as JoinAstNode[])
-    const findJoinTo = (joinsToInput: string, joins: JoinAstNode[]) =>
+    const findJoinTo = (joinsToInput: string) =>
       joins.filter((join) => join.to.toLowerCase() === joinsToInput.toLowerCase())
-    const findJoinFrom = (joinsFromInput: string, joins: JoinAstNode[]) =>
+    const findJoinFrom = (joinsFromInput: string) =>
       joins.filter((join) => join.from.toLowerCase() === joinsFromInput.toLowerCase())
     const allInputs = this.getInputs(sourceClause)
 
-    return (evt, inputName) => {
-      let res: ComplexEvent[] = getSeedEvents(evt, inputName)
-      let inputsToBeJoinedFrom = [inputName];
-      while (inputsToBeJoinedFrom.length) {
-        const joinFromInput = inputsToBeJoinedFrom.shift() as string
-        const joinsToBeProcessed = findJoinFrom(joinFromInput, joins)
+    const join = (inputName: string, res: ComplexEvent[], findJoin: (inputName: string) => JoinAstNode[], findNameOfOtherTable: (join: JoinAstNode) => string) => {
+      let inputsToBeJoined = [inputName];
+      while (inputsToBeJoined.length) {
+        const joinFromInput = inputsToBeJoined.shift() as string
+        const joinsToBeProcessed = findJoin(joinFromInput)
         for (let join of joinsToBeProcessed) {
+          const joinWithTable = findNameOfOtherTable(join)
           let newRes: ComplexEvent[] = [];
           for (let ev of res) {
-            const matcher = this.createMatcher(ev, join.to, join);
-            const matchingEvents = allInputs[join.to].events.filter(matcher);
+            const matcher = this.createMatcher(ev, joinWithTable, join);
+            const matchingEvents = allInputs[joinWithTable].events.filter(matcher);
             for (let matchingEvent of matchingEvents) {
               const target: ComplexEvent = copyComplexEvent(ev);
-              target[join.to] = matchingEvent
+              target[joinWithTable] = matchingEvent
               newRes.push(target)
             }
           }
           res = newRes;
-          inputsToBeJoinedFrom.push(join.to)
+          inputsToBeJoined.push(joinWithTable)
         }
       }
+      return res;
+    }
 
-      // Todo: Factorize
-      let inputsToBeJoinedTo = [inputName];
-      while (inputsToBeJoinedTo.length) {
-        const joinToInput = inputsToBeJoinedTo.shift() as string
-        const joinsToBeProcessed = findJoinTo(joinToInput, joins)
-        for (let join of joinsToBeProcessed) {
-          let newRes: ComplexEvent[] = [];
-          for (let ev of res) {
-            const matcher = this.createMatcher(ev, join.from, join);
-            const matchingEvents = allInputs[join.from].events.filter(matcher);
-            for (let matchingEvent of matchingEvents) {
-              const target: ComplexEvent = copyComplexEvent(ev)
-              target[join.from] = matchingEvent
-              newRes.push(target)
-            }
-          }
-          res = newRes;
-          inputsToBeJoinedFrom.push(join.from)
-        }
-      }
-
+    return (evt, inputName) => {
+      let res: ComplexEvent[] = getSeedEvents(evt, inputName)
+      // Join all tables joining FROM this (e.g. in FROM a JOIN b ON a.x = b.x, when event comes on b, we'll merge with a.)
+      res = join(inputName, res, findJoinFrom, (join) => join.to);
+      // Join all tables joining TO this (e.g. in FROM a JOIN b ON a.x = b.x, when event comes on a, we'll merge with b.)
+      res = join(inputName, res, findJoinTo, (join) => join.from);
       return res;
     }
   }
 
-  private createMatcher(ev: ComplexEvent, joinedStreamName: string, join: JoinAstNode) {
+  /**
+   * Creates a matching function that will allow to compare elements between a complex event stream and an input stream
+   * using the comparator defined in the JOIN clause of the query.
+   * 
+   * TODO: This is calculated at runtime and some of it (e.g. the "part getters") could be compiled when starting the job.
+   * 
+   * @param ev Complex event being compared
+   * @param joinedStreamName Event in the other stream
+   * @param join JOIN clause
+   * @returns a comparator that will compare an input stream with the complex event beeing compared boolean indicating if a JOIN should occur.
+   */
+  private createMatcher(ev: ComplexEvent, joinedStreamName: string, join: JoinAstNode): (ev: EventEnvelope) => boolean {
     const streamIsPartA = (join.on.partA.value as FieldQualifier).input === joinedStreamName
     const createFieldRetriever = (qual: FieldQualifier) => (ev: EventEnvelope) => getFieldFromEventEnvelope(ev, join.on.partA.value as FieldQualifier)
     const getPartA = streamIsPartA ? createFieldRetriever(join.on.partA.value as FieldQualifier) : () => getField(ev, join.on.partA.value as FieldQualifier)
@@ -300,7 +291,7 @@ export class Job {
     for (let field of selectionClause.fields) {
       const input = field.fieldQualifier?.input
       const fieldName = field.fieldQualifier?.qualifiers[0]
-      if (input && !this.inputs.find(input => input.params.name === field.fieldQualifier?.input)) {
+      if (!findInput(this.inputs, field.fieldQualifier?.input)) {
         throw Error(`Input stream not found: ${field.fieldQualifier?.input}`)
       }
       if (field.fieldType === "*") {
