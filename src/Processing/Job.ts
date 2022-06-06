@@ -197,7 +197,7 @@ export class Job {
           let newRes: ComplexEvent[] = [];
           for (let ev of res) {
             const matcher = this.createMatcher(ev, joinWithTable, join);
-            const matchingEvents = allInputs[joinWithTable].events.filter(matcher);
+            const matchingEvents = allInputs[joinWithTable].getEvents().filter(matcher);
             for (let matchingEvent of matchingEvents) {
               const target: ComplexEvent = copyComplexEvent(ev);
               target[joinWithTable] = matchingEvent
@@ -291,9 +291,7 @@ export class Job {
     for (let field of selectionClause.fields) {
       const input = field.fieldQualifier?.input
       const fieldName = field.fieldQualifier?.qualifiers[0]
-      if (!findInput(this.inputs, field.fieldQualifier?.input)) {
-        throw Error(`Input stream not found: ${field.fieldQualifier?.input}`)
-      }
+
       if (field.fieldType === "*") {
         projectors.push((complexEvent: ComplexEvent, res: any) => flattenComplexEvent(complexEvent, res))
       } else if (field.fieldQualifier?.qualifiers[0] === "*") {

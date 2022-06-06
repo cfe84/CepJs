@@ -1,5 +1,5 @@
 import { Job } from "./Processing/Job"
-import { InputStream } from "./IO/InputStream"
+import { InputStream, InputStreamParameters } from "./IO/InputStream"
 import { OutputStream } from "./IO/OutputStream"
 import { Lexer } from "./Lexer/Lexer"
 import { Parser } from "./Parser/Parser"
@@ -13,8 +13,8 @@ export class EventProcessor {
    * @param name 
    * @returns 
    */
-  createInputStream(name: string) {
-    const stream = new InputStream({ name })
+  createInputStream(name: string | InputStreamParameters) {
+    const stream = typeof name === "string" ? new InputStream({ name }) : new InputStream(name)
     this.inputStreams.push(stream)
     return stream
   }

@@ -3,7 +3,7 @@ import { EventProcessor } from "./EventProcessor";
 const processor = new EventProcessor()
 
 const measurementInput = processor.createInputStream("input")
-const deviceInput = processor.createInputStream("deviceInput")
+const deviceInput = processor.createInputStream({ name: "deviceInput", cacheExpiryInSeconds: 1, expireEventsInBackground: true })
 const output = processor.createOutputStream("output")
 output.registerCallback((evt) => console.log(JSON.stringify(evt)))
 
@@ -19,3 +19,9 @@ measurementInput.pushEvent({ name: "Event 3", temp: 50, deviceId: "d2" })
 measurementInput.pushEvent({ name: "Event 4", temp: 51, deviceId: "d1" })
 measurementInput.pushEvent({ name: "Event 5", temp: 70, deviceId: "d1" })
 measurementInput.pushEvent({ name: "Event 6", temp: 22, deviceId: "d1" })
+setTimeout(() => {
+  // This won't be caught because the data is gone.
+  measurementInput.pushEvent({ name: "Event after death", temp: 70, deviceId: "d1" })
+  // Destroying to stop the background loop that expires events.
+  deviceInput.destroy()
+}, 2500)

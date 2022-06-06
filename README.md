@@ -89,7 +89,8 @@ VALUE_FIELD :=
 
 # Improvements
 
-- [ ] JOIN
+- [X] JOIN
 - [ ] GROUP BY and support for time windows
+- [ ] More JOIN types (OUTER / ...)
 - [ ] Testing for all exceptions
-- [ ] Event sources can be made better, by both sorting and partitioning them to make search and expiry more efficient.
+- [ ] Event sources can be made better, by both ~sorting~ (done) and partitioning them to make search and expiry more efficient.
